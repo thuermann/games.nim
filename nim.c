@@ -1,9 +1,10 @@
 /*
- * $Id: nim.c,v 1.1 2013/01/09 10:43:59 urs Exp $
+ * $Id: nim.c,v 1.2 2013/01/15 00:18:59 urs Exp $
  */
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 #include <assert.h>
 
 static void usage(const char *name)
@@ -11,7 +12,17 @@ static void usage(const char *name)
     fprintf(stderr, "Usage: %s [a b c]\n", name);
 }
 
+struct node {
+    struct node *left, *right;
+    int heap[3];
+    int val;
+};
+
 static int nim(int *heap, int depth);
+static struct node *lookup(struct node *root, int *heap);
+static void insert(struct node **rootp, int *heap, int val);
+static int heap_cmp(const int *a, const int *b);
+static int int_cmp(const void *a, const void *b);
 
 int main(int argc, char **argv)
 {
@@ -31,14 +42,23 @@ int main(int argc, char **argv)
     return 0;
 }
 
+static struct node *root;
+
 static int nim(int *heap, int depth)
 {
     int nr, count;
     int v, max = -10;
+    int myheap[3];
+    struct node *n;
 
     assert(heap[0] >= 0 && heap[1] >= 0 && heap[2] >= 0);
 
     printf("%*snim: %d %d %d\n", depth * 2, "", heap[0], heap[1], heap[2]);
+
+    if (n = lookup(root, heap)) {
+	max = n->val;
+	goto ret;
+    }
 
     if (heap[0] + heap[1] + heap[2] == 1) {
 	max = -1;
@@ -59,9 +79,10 @@ static int nim(int *heap, int depth)
 
 	printf("%*s%d %d %d: %d %d\n", depth * 2, "",
 	       heap[0], heap[1], heap[2], nr, count);
-	heap[nr] -= count;
-	v = -nim(heap, depth + 1);
-	heap[nr] += count;
+	memcpy(myheap, heap, sizeof(myheap));
+	myheap[nr] -= count;
+	qsort(myheap, 3, sizeof(int), int_cmp);
+	v = -nim(myheap, depth + 1);
 	if (v > max)
 	    max = v;
 	printf("%*sv = %+d, max = %+d\n", depth * 2, "", v, max);
@@ -69,8 +90,56 @@ static int nim(int *heap, int depth)
 
     assert(max == -1 || max == 1);
 
+    insert(&root, heap, max);
+
  ret:
     printf("%*sret: %+d\n", depth * 2, "", max);
 
     return max;
+}
+
+static struct node *lookup(struct node *root, int *heap)
+{
+    int cmp;
+
+    while (root && (cmp = heap_cmp(root->heap, heap)) != 0) {
+	if (cmp < 0)
+	    root = root->left;
+	else
+	    root = root->right;
+    }
+
+    return root;
+}
+
+static void insert(struct node **rootp, int *heap, int val)
+{
+    struct node *n;
+    int cmp;
+
+    while ((n = *rootp) && (cmp = heap_cmp(n->heap, heap)) != 0) {
+	if (cmp < 0)
+	    rootp = &n->left;
+	else
+	    rootp = &n->right;
+    }
+
+    n = *rootp = malloc(sizeof(struct node));
+    n->left = n->right = NULL;
+    n->val  = val;
+    memcpy(n->heap, heap, 3 * sizeof(int));
+}
+
+static int heap_cmp(const int *a, const int *b)
+{
+    if (a[0] != b[0])
+	return a[0] - b[0];
+    if (a[1] != b[1])
+	return a[1] - b[1];
+    return a[2] - b[2];
+}
+
+static int int_cmp(const void *a, const void *b)
+{
+    return *(const int *)a - *(const int *)b;
 }
