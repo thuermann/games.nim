@@ -1,5 +1,5 @@
 /*
- * $Id: nim.c,v 1.2 2013/01/15 00:18:59 urs Exp $
+ * $Id: nim.c,v 1.3 2013/01/16 07:04:01 urs Exp $
  */
 
 #include <stdlib.h>
@@ -60,8 +60,8 @@ static int nim(int *heap, int depth)
 	goto ret;
     }
 
-    if (heap[0] + heap[1] + heap[2] == 1) {
-	max = -1;
+    if (heap[0] + heap[1] + heap[2] == 0) {
+	max = 1;
 	goto ret;
     }
 
@@ -70,11 +70,9 @@ static int nim(int *heap, int depth)
 	 count < heap[nr] ? count++ : (nr++, count = 1)) {
 
 	/* Take 'count' items from heap 'nr', if there are at least 'count'
-	 * items left, but don't take the last item.
+	 * items left.
 	 */
 	if (heap[nr] < count)
-	    continue;
-	if (heap[0] + heap[1] + heap[2] == count)
 	    continue;
 
 	printf("%*s%d %d %d: %d %d\n", depth * 2, "",
