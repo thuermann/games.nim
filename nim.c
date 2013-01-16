@@ -1,5 +1,5 @@
 /*
- * $Id: nim.c,v 1.3 2013/01/16 07:04:01 urs Exp $
+ * $Id: nim.c,v 1.4 2013/01/16 07:19:28 urs Exp $
  */
 
 #include <stdlib.h>
@@ -19,8 +19,7 @@ struct node {
 };
 
 static int nim(int *heap, int depth);
-static struct node *lookup(struct node *root, int *heap);
-static void insert(struct node **rootp, int *heap, int val);
+static struct node *lookup(struct node **root, int *heap);
 static int heap_cmp(const int *a, const int *b);
 static int int_cmp(const void *a, const void *b);
 
@@ -55,7 +54,8 @@ static int nim(int *heap, int depth)
 
     printf("%*snim: %d %d %d\n", depth * 2, "", heap[0], heap[1], heap[2]);
 
-    if (n = lookup(root, heap)) {
+    n = lookup(&root, heap);
+    if (n->val != 0) {
 	max = n->val;
 	goto ret;
     }
@@ -88,7 +88,7 @@ static int nim(int *heap, int depth)
 
     assert(max == -1 || max == 1);
 
-    insert(&root, heap, max);
+    n->val = max;
 
  ret:
     printf("%*sret: %+d\n", depth * 2, "", max);
@@ -96,21 +96,7 @@ static int nim(int *heap, int depth)
     return max;
 }
 
-static struct node *lookup(struct node *root, int *heap)
-{
-    int cmp;
-
-    while (root && (cmp = heap_cmp(root->heap, heap)) != 0) {
-	if (cmp < 0)
-	    root = root->left;
-	else
-	    root = root->right;
-    }
-
-    return root;
-}
-
-static void insert(struct node **rootp, int *heap, int val)
+static struct node *lookup(struct node **rootp, int *heap)
 {
     struct node *n;
     int cmp;
@@ -121,11 +107,15 @@ static void insert(struct node **rootp, int *heap, int val)
 	else
 	    rootp = &n->right;
     }
+    if (n)
+	return n;
 
     n = *rootp = malloc(sizeof(struct node));
     n->left = n->right = NULL;
-    n->val  = val;
+    n->val  = 0;
     memcpy(n->heap, heap, 3 * sizeof(int));
+
+    return n;
 }
 
 static int heap_cmp(const int *a, const int *b)
