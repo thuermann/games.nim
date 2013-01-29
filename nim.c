@@ -1,5 +1,5 @@
 /*
- * $Id: nim.c,v 1.4 2013/01/16 07:19:28 urs Exp $
+ * $Id: nim.c,v 1.5 2013/01/29 22:57:08 urs Exp $
  */
 
 #include <stdlib.h>
@@ -12,15 +12,9 @@ static void usage(const char *name)
     fprintf(stderr, "Usage: %s [a b c]\n", name);
 }
 
-struct node {
-    struct node *left, *right;
-    int heap[3];
-    int val;
-};
-
 static int nim(int *heap, int depth);
-static struct node *lookup(struct node **root, int *heap);
-static int heap_cmp(const int *a, const int *b);
+static void lookup_init(int *max, int n);
+static char *lookup(int *heap, int n);
 static int int_cmp(const void *a, const void *b);
 
 int main(int argc, char **argv)
@@ -36,27 +30,27 @@ int main(int argc, char **argv)
 	exit(1);
     }
 
+    lookup_init(heap, 3);
+
     printf("%+d\n", nim(heap, 0));
 
     return 0;
 }
-
-static struct node *root;
 
 static int nim(int *heap, int depth)
 {
     int nr, count;
     int v, max = -10;
     int myheap[3];
-    struct node *n;
+    char *res;
 
     assert(heap[0] >= 0 && heap[1] >= 0 && heap[2] >= 0);
 
     printf("%*snim: %d %d %d\n", depth * 2, "", heap[0], heap[1], heap[2]);
 
-    n = lookup(&root, heap);
-    if (n->val != 0) {
-	max = n->val;
+    res = lookup(heap, 3);
+    if (*res != 0) {
+	max = *res;
 	goto ret;
     }
 
@@ -88,7 +82,7 @@ static int nim(int *heap, int depth)
 
     assert(max == -1 || max == 1);
 
-    n->val = max;
+    *res = max;
 
  ret:
     printf("%*sret: %+d\n", depth * 2, "", max);
@@ -96,35 +90,43 @@ static int nim(int *heap, int depth)
     return max;
 }
 
-static struct node *lookup(struct node **rootp, int *heap)
+static int **offset;
+static char *result;
+
+static void lookup_init(int *max, int n)
 {
-    struct node *n;
-    int cmp;
+    int i, j, k;
 
-    while ((n = *rootp) && (cmp = heap_cmp(n->heap, heap)) != 0) {
-	if (cmp < 0)
-	    rootp = &n->left;
-	else
-	    rootp = &n->right;
-    }
-    if (n)
-	return n;
+    offset = malloc(n * sizeof(int *));
 
-    n = *rootp = malloc(sizeof(struct node));
-    n->left = n->right = NULL;
-    n->val  = 0;
-    memcpy(n->heap, heap, 3 * sizeof(int));
+    for (i = 0; i < n; i++)
+	offset[i] = malloc((max[i] + 2) * sizeof(int));
 
-    return n;
+    for (i = 0; i <= max[0] + 1; i++)
+	offset[0][i] = i;
+
+    for (k = 1; k < n; k++)
+	for (i = 0; i <= max[k] + 1; i++) {
+	    int s = 0;
+	    for (j = 0; j <= i; j++)
+		if (j <= max[k - 1])
+		    s += offset[k - 1][j];
+		else
+		    s += offset[k - 1][max[k - 1] + 1];
+	    offset[k][i] = s;
+	}
+
+    result = calloc(offset[n - 1][max[n - 1] + 1], 1);
 }
 
-static int heap_cmp(const int *a, const int *b)
+static char *lookup(int *heap, int n)
 {
-    if (a[0] != b[0])
-	return a[0] - b[0];
-    if (a[1] != b[1])
-	return a[1] - b[1];
-    return a[2] - b[2];
+    int idx, i;
+
+    idx = heap[0];
+    for (i = 1; i < n; i++)
+	idx += offset[i][heap[i]];
+    return &result[idx];
 }
 
 static int int_cmp(const void *a, const void *b)
