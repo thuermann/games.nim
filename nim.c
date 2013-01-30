@@ -1,5 +1,5 @@
 /*
- * $Id: nim.c,v 1.5 2013/01/29 22:57:08 urs Exp $
+ * $Id: nim.c,v 1.6 2013/01/30 23:38:09 urs Exp $
  */
 
 #include <stdlib.h>
@@ -9,58 +9,66 @@
 
 static void usage(const char *name)
 {
-    fprintf(stderr, "Usage: %s [a b c]\n", name);
+    fprintf(stderr, "Usage: %s num ...\n", name);
 }
 
-static int nim(int *heap, int depth);
+static int nim(int *heap, int n, int depth);
 static void lookup_init(int *max, int n);
 static char *lookup(int *heap, int n);
 static int int_cmp(const void *a, const void *b);
 
 int main(int argc, char **argv)
 {
-    int heap[3] = { 3, 4, 5 };
-    int i;
+    int n, i;
 
-    if (argc == 4) {
-	for (i = 0; i < 3; i++)
-	    heap[i] = atoi(*++argv);
-    } else if (argc != 1) {
+    if (argc == 1) {
 	usage(argv[0]);
 	exit(1);
     }
 
-    lookup_init(heap, 3);
+    n = argc - 1;
+    int heap[n];
+    for (i = 0; i < n; i++)
+	heap[i] = atoi(*++argv);
 
-    printf("%+d\n", nim(heap, 0));
+    lookup_init(heap, n);
+
+    printf("%+d\n", nim(heap, n, 0));
 
     return 0;
 }
 
-static int nim(int *heap, int depth)
+static int nim(int *heap, int n, int depth)
 {
     int nr, count;
-    int v, max = -10;
-    int myheap[3];
+    int s, v, max = -10;
+    int myheap[n];
     char *res;
+    int i;
 
-    assert(heap[0] >= 0 && heap[1] >= 0 && heap[2] >= 0);
+    for (i = 0; i < n; i++)
+	assert(heap[i] >= 0);
 
-    printf("%*snim: %d %d %d\n", depth * 2, "", heap[0], heap[1], heap[2]);
+    printf("%*snim:", depth * 2, "");
+    for (i = 0; i < n; i++)
+	printf(" %d", heap[i]);
+    putchar('\n');
 
-    res = lookup(heap, 3);
+    res = lookup(heap, n);
     if (*res != 0) {
 	max = *res;
 	goto ret;
     }
 
-    if (heap[0] + heap[1] + heap[2] == 0) {
+    for (s = 0, i = 0; i < n; i++)
+	s += heap[i];
+    if (s == 0) {
 	max = 1;
 	goto ret;
     }
 
     /* Generate all possible moves. */
-    for (nr = 0, count = 1; nr < 3;
+    for (nr = 0, count = 1; nr < n;
 	 count < heap[nr] ? count++ : (nr++, count = 1)) {
 
 	/* Take 'count' items from heap 'nr', if there are at least 'count'
@@ -69,12 +77,14 @@ static int nim(int *heap, int depth)
 	if (heap[nr] < count)
 	    continue;
 
-	printf("%*s%d %d %d: %d %d\n", depth * 2, "",
-	       heap[0], heap[1], heap[2], nr, count);
+	printf("%*s", depth * 2, "");
+	for (i = 0; i < n; i++)
+	    printf(i == 0 ? "%d" : " %d", heap[i]);
+	printf(": %d %d\n", nr, count);
 	memcpy(myheap, heap, sizeof(myheap));
 	myheap[nr] -= count;
-	qsort(myheap, 3, sizeof(int), int_cmp);
-	v = -nim(myheap, depth + 1);
+	qsort(myheap, n, sizeof(int), int_cmp);
+	v = -nim(myheap, n, depth + 1);
 	if (v > max)
 	    max = v;
 	printf("%*sv = %+d, max = %+d\n", depth * 2, "", v, max);
