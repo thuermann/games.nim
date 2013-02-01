@@ -1,5 +1,5 @@
 /*
- * $Id: nim.c,v 1.6 2013/01/30 23:38:09 urs Exp $
+ * $Id: nim.c,v 1.7 2013/02/01 06:10:47 urs Exp $
  */
 
 #include <stdlib.h>
@@ -29,7 +29,10 @@ int main(int argc, char **argv)
     n = argc - 1;
     int heap[n];
     for (i = 0; i < n; i++)
-	heap[i] = atoi(*++argv);
+	if ((heap[i] = atoi(*++argv)) < 0) {
+	    fprintf(stderr, "Invalid heap size: %d\n", heap[i]);
+	    exit(1);
+	}
 
     lookup_init(heap, n);
 
