@@ -1,5 +1,5 @@
 /*
- * $Id: nim.c,v 1.7 2013/02/01 06:10:47 urs Exp $
+ * $Id: nim.c,v 1.8 2013/02/01 06:11:36 urs Exp $
  */
 
 #include <stdlib.h>
@@ -13,7 +13,7 @@ static void usage(const char *name)
 }
 
 static int nim(int *heap, int n, int depth);
-static void lookup_init(int *max, int n);
+static int lookup_init(int *max, int n);
 static char *lookup(int *heap, int n);
 static int int_cmp(const void *a, const void *b);
 
@@ -34,7 +34,10 @@ int main(int argc, char **argv)
 	    exit(1);
 	}
 
-    lookup_init(heap, n);
+    if (!lookup_init(heap, n)) {
+	perror("init");
+	exit(1);
+    }
 
     printf("%+d\n", nim(heap, n, 0));
 
@@ -106,14 +109,16 @@ static int nim(int *heap, int n, int depth)
 static int **offset;
 static char *result;
 
-static void lookup_init(int *max, int n)
+static int lookup_init(int *max, int n)
 {
     int i, j, k;
 
-    offset = malloc(n * sizeof(int *));
+    if (!(offset = malloc(n * sizeof(int *))))
+	return 0;
 
     for (i = 0; i < n; i++)
-	offset[i] = malloc((max[i] + 2) * sizeof(int));
+	if (!(offset[i] = malloc((max[i] + 2) * sizeof(int))))
+	    return 0;
 
     for (i = 0; i <= max[0] + 1; i++)
 	offset[0][i] = i;
@@ -129,7 +134,10 @@ static void lookup_init(int *max, int n)
 	    offset[k][i] = s;
 	}
 
-    result = calloc(offset[n - 1][max[n - 1] + 1], 1);
+    if (!(result = calloc(offset[n - 1][max[n - 1] + 1], 1)))
+	return 0;
+
+    return 1;
 }
 
 static char *lookup(int *heap, int n)
