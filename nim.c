@@ -1,5 +1,5 @@
 /*
- * $Id: nim.c,v 1.9 2015/03/11 10:25:49 urs Exp $
+ * $Id: nim.c,v 1.10 2015/03/11 10:31:56 urs Exp $
  */
 
 #include <stdlib.h>
@@ -40,6 +40,8 @@ int main(int argc, char **argv)
 	    exit(1);
 	}
 
+    qsort(heap, n, sizeof(int), int_cmp);
+
     if (!lookup_init(&map, heap, n)) {
 	perror("init");
 	exit(1);
@@ -58,8 +60,9 @@ static int nim(const struct map *map, const int *heap, int n, int depth)
     char *res;
     int i;
 
-    for (i = 0; i < n; i++)
-	assert(heap[i] >= 0);
+    assert(heap[0] >= 0);
+    for (i = 1; i < n; i++)
+	assert(heap[i - 1] <= heap[i]);
 
     printf("%*snim:", depth * 2, "");
     for (i = 0; i < n; i++)
