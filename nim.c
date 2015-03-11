@@ -1,5 +1,5 @@
 /*
- * $Id: nim.c,v 1.8 2013/02/01 06:11:36 urs Exp $
+ * $Id: nim.c,v 1.9 2015/03/11 10:25:49 urs Exp $
  */
 
 #include <stdlib.h>
@@ -12,13 +12,19 @@ static void usage(const char *name)
     fprintf(stderr, "Usage: %s num ...\n", name);
 }
 
-static int nim(int *heap, int n, int depth);
-static int lookup_init(int *max, int n);
-static char *lookup(int *heap, int n);
+struct map {
+    int **offset;
+    char *result;
+};
+
+static int nim(const struct map *map, const int *heap, int n, int depth);
+static int lookup_init(struct map *map, const int *max, int n);
+static char *lookup(const struct map *map, const int *heap, int n);
 static int int_cmp(const void *a, const void *b);
 
 int main(int argc, char **argv)
 {
+    struct map map;
     int n, i;
 
     if (argc == 1) {
@@ -34,17 +40,17 @@ int main(int argc, char **argv)
 	    exit(1);
 	}
 
-    if (!lookup_init(heap, n)) {
+    if (!lookup_init(&map, heap, n)) {
 	perror("init");
 	exit(1);
     }
 
-    printf("%+d\n", nim(heap, n, 0));
+    printf("%+d\n", nim(&map, heap, n, 0));
 
     return 0;
 }
 
-static int nim(int *heap, int n, int depth)
+static int nim(const struct map *map, const int *heap, int n, int depth)
 {
     int nr, count;
     int s, v, max = -10;
@@ -60,7 +66,7 @@ static int nim(int *heap, int n, int depth)
 	printf(" %d", heap[i]);
     putchar('\n');
 
-    res = lookup(heap, n);
+    res = lookup(map, heap, n);
     if (*res != 0) {
 	max = *res;
 	goto ret;
@@ -90,7 +96,7 @@ static int nim(int *heap, int n, int depth)
 	memcpy(myheap, heap, sizeof(myheap));
 	myheap[nr] -= count;
 	qsort(myheap, n, sizeof(int), int_cmp);
-	v = -nim(myheap, n, depth + 1);
+	v = -nim(map, myheap, n, depth + 1);
 	if (v > max)
 	    max = v;
 	printf("%*sv = %+d, max = %+d\n", depth * 2, "", v, max);
@@ -106,48 +112,45 @@ static int nim(int *heap, int n, int depth)
     return max;
 }
 
-static int **offset;
-static char *result;
-
-static int lookup_init(int *max, int n)
+static int lookup_init(struct map *map, const int *max, int n)
 {
     int i, j, k;
 
-    if (!(offset = malloc(n * sizeof(int *))))
+    if (!(map->offset = malloc(n * sizeof(int *))))
 	return 0;
 
     for (i = 0; i < n; i++)
-	if (!(offset[i] = malloc((max[i] + 2) * sizeof(int))))
+	if (!(map->offset[i] = malloc((max[i] + 2) * sizeof(int))))
 	    return 0;
 
     for (i = 0; i <= max[0] + 1; i++)
-	offset[0][i] = i;
+	map->offset[0][i] = i;
 
     for (k = 1; k < n; k++)
 	for (i = 0; i <= max[k] + 1; i++) {
 	    int s = 0;
 	    for (j = 0; j <= i; j++)
 		if (j <= max[k - 1])
-		    s += offset[k - 1][j];
+		    s += map->offset[k - 1][j];
 		else
-		    s += offset[k - 1][max[k - 1] + 1];
-	    offset[k][i] = s;
+		    s += map->offset[k - 1][max[k - 1] + 1];
+	    map->offset[k][i] = s;
 	}
 
-    if (!(result = calloc(offset[n - 1][max[n - 1] + 1], 1)))
+    if (!(map->result = calloc(map->offset[n - 1][max[n - 1] + 1], 1)))
 	return 0;
 
     return 1;
 }
 
-static char *lookup(int *heap, int n)
+static char *lookup(const struct map *map, const int *heap, int n)
 {
     int idx, i;
 
     idx = heap[0];
     for (i = 1; i < n; i++)
-	idx += offset[i][heap[i]];
-    return &result[idx];
+	idx += map->offset[i][heap[i]];
+    return &map->result[idx];
 }
 
 static int int_cmp(const void *a, const void *b)
