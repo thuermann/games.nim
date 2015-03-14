@@ -1,5 +1,5 @@
 /*
- * $Id: nim.c,v 1.10 2015/03/11 10:31:56 urs Exp $
+ * $Id: nim.c,v 1.11 2015/03/14 19:32:38 urs Exp $
  */
 
 #include <stdlib.h>
@@ -14,12 +14,12 @@ static void usage(const char *name)
 
 struct map {
     int **offset;
-    char *result;
+    signed char *result;
 };
 
 static int nim(const struct map *map, const int *heap, int n, int depth);
 static int lookup_init(struct map *map, const int *max, int n);
-static char *lookup(const struct map *map, const int *heap, int n);
+static signed char *lookup(const struct map *map, const int *heap, int n);
 static int int_cmp(const void *a, const void *b);
 
 int main(int argc, char **argv)
@@ -57,7 +57,7 @@ static int nim(const struct map *map, const int *heap, int n, int depth)
     int nr, count;
     int s, v, max = -10;
     int myheap[n];
-    char *res;
+    signed char *res;
     int i;
 
     assert(heap[0] >= 0);
@@ -146,7 +146,7 @@ static int lookup_init(struct map *map, const int *max, int n)
     return 1;
 }
 
-static char *lookup(const struct map *map, const int *heap, int n)
+static signed char *lookup(const struct map *map, const int *heap, int n)
 {
     int idx, i;
 
